@@ -28,6 +28,7 @@ constexpr chip::EndpointId kTemperatureSensorEndpointId = 1;
 constexpr chip::EndpointId kHumiditySensorEndpointId = 2;
 
 Nrf::Matter::IdentifyCluster sIdentifyCluster(kTemperatureSensorEndpointId);
+Nrf::Matter::IdentifyCluster sIdentifyClusterHumidity(kHumiditySensorEndpointId);
 
 #ifdef CONFIG_CHIP_ICD_UAT_SUPPORT
 #define UAT_BUTTON_MASK DK_BTN3_MSK
@@ -115,6 +116,7 @@ CHIP_ERROR AppTask::Init()
 	ReturnErrorOnFailure(Nrf::Matter::RegisterEventHandler(Nrf::Board::DefaultMatterEventHandler, 0));
 
 	ReturnErrorOnFailure(sIdentifyCluster.Init());
+	ReturnErrorOnFailure(sIdentifyClusterHumidity.Init());
 
 	return Nrf::Matter::StartServer();
 }
@@ -144,7 +146,8 @@ CHIP_ERROR AppTask::StartApp()
 
 	mTemperatureSensorMaxValue = val.Value();
 	/************************************************************************************************************ */
-  // 습도 센서 초기화 추가
+#if 0
+	// 습도 센서 초기화 추가
   DataModel::Nullable<uint16_t> humidityVal;
   status = Clusters::RelativeHumidityMeasurement::Attributes::MinMeasuredValue::Get(kHumiditySensorEndpointId, humidityVal);
 
@@ -163,6 +166,7 @@ CHIP_ERROR AppTask::StartApp()
   }
 
   mHumiditySensorMaxValue = humidityVal.Value();
+#endif	
   /************************************************************************************************************ */
 	k_timer_init(&mTimer, AppTask::UpdateTemperatureTimeoutCallback, nullptr);
 	k_timer_user_data_set(&mTimer, this);
