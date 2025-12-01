@@ -36,12 +36,27 @@ public:
 
 	int16_t GetCurrentTemperature() const { return mCurrentTemperature; }
 
+  /* Defined by cluster humidity measured value = 100 x humidity in % with resolution of 0.01 %. */
+  void UpdateHumidityMeasurement()
+  {
+    /* Linear humidity increase that is wrapped around to min value after reaching the max value. */
+    if (mCurrentHumidity < mHumiditySensorMaxValue) {
+      mCurrentHumidity += kHumidityMeasurementStep;
+    } else {
+      mCurrentHumidity = mHumiditySensorMinValue;
+    }
+  }
+
+  uint16_t GetCurrentHumidity() const { return mCurrentHumidity; }
+
 private:
 	CHIP_ERROR Init();
 	k_timer mTimer;
 
-	static constexpr uint16_t kTemperatureMeasurementIntervalMs = 10000; /* 10 seconds */
+	static constexpr uint16_t kTemperatureMeasurementIntervalMs = 60000; /* 60 seconds */
 	static constexpr uint16_t kTemperatureMeasurementStep = 100; /* 1 degree Celsius */
+
+  static constexpr uint16_t kHumidityMeasurementStep = 100; /* 1 percent */
 
 	static void UpdateTemperatureTimeoutCallback(k_timer *timer);
 
@@ -50,4 +65,9 @@ private:
 	int16_t mTemperatureSensorMaxValue = 0;
 	int16_t mTemperatureSensorMinValue = 0;
 	int16_t mCurrentTemperature = 0;
+
+	// 습도 센서 관련 멤버 변수 추가
+	uint16_t mHumiditySensorMaxValue = 0;
+	uint16_t mHumiditySensorMinValue = 0;
+	uint16_t mCurrentHumidity = 0;
 };
