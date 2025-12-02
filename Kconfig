@@ -20,7 +20,7 @@ config CHIP_ICD_LIT_SUPPORT
 	default y
 
 config CHIP_ICD_SIT_SLOW_POLL_LIMIT
-	default 5000
+	default 15000
 
 config CHIP_ICD_REPORT_ON_ACTIVE_MODE
 	default y
