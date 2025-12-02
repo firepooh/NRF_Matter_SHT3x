@@ -49,6 +49,31 @@ public:
 
   uint16_t GetCurrentHumidity() const { return mCurrentHumidity; }
 
+  /* Battery voltage in mV (3000-4200mV for Li-ion) */
+  void UpdateBatteryVoltage()
+  {
+    /* 배터리 전압 시뮬레이션: 4200mV에서 3000mV까지 감소 */
+    if (mCurrentBatteryVoltage > mBatteryVoltageMin) {
+      mCurrentBatteryVoltage -= kBatteryVoltageStep;
+    } else {
+      mCurrentBatteryVoltage = mBatteryVoltageMax;
+    }
+  }
+
+  uint32_t GetCurrentBatteryVoltage() const { return mCurrentBatteryVoltage; }
+
+  /* Battery percentage 0-200 (0.5% units, 200 = 100%) */
+  void UpdateBatteryPercentage()
+  {
+    /* 배터리 잔량 시뮬레이션: 전압 기반으로 계산 */
+    /* 3000mV = 0%, 4200mV = 100% (200 in 0.5% units) */
+    uint32_t range = mBatteryVoltageMax - mBatteryVoltageMin;
+    uint32_t current = mCurrentBatteryVoltage - mBatteryVoltageMin;
+    mCurrentBatteryPercentage = (current * 200) / range;
+  }
+
+  uint8_t GetCurrentBatteryPercentage() const { return mCurrentBatteryPercentage; }
+
 private:
 	CHIP_ERROR Init();
 	k_timer mTimer;
@@ -70,4 +95,12 @@ private:
 	uint16_t mHumiditySensorMaxValue = 0;
 	uint16_t mHumiditySensorMinValue = 0;
 	uint16_t mCurrentHumidity = 0;
+
+	// 배터리 관련 멤버 변수 추가
+  static constexpr uint32_t mBatteryVoltageMax = 4200; /* 4.2V in mV */
+  static constexpr uint32_t mBatteryVoltageMin = 3000; /* 3.0V in mV */
+  static constexpr uint32_t kBatteryVoltageStep = 50;  /* 50mV 감소 */
+  
+  uint32_t mCurrentBatteryVoltage = mBatteryVoltageMax;
+  uint8_t mCurrentBatteryPercentage = 200; /* 100% = 200 in 0.5% units */	
 };

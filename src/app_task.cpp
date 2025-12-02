@@ -24,6 +24,7 @@ using namespace ::chip::DeviceLayer;
 
 namespace
 {
+constexpr chip::EndpointId kPowerSourceEndpointId = 0;  
 constexpr chip::EndpointId kTemperatureSensorEndpointId = 1;
 constexpr chip::EndpointId kHumiditySensorEndpointId = 2;
 
@@ -73,6 +74,32 @@ void AppTask::UpdateTemperatureTimeoutCallback(k_timer *timer)
       if (status != Protocols::InteractionModel::Status::Success) {
         LOG_ERR("Updating humidity measurement failed %x", to_underlying(status));
       }
+
+      // 배터리 전압 업데이트
+      AppTask::Instance().UpdateBatteryVoltage();
+      AppTask::Instance().UpdateBatteryPercentage();
+
+      DataModel::Nullable<uint32_t> batteryVoltage(AppTask::Instance().GetCurrentBatteryVoltage());
+      status = Clusters::PowerSource::Attributes::BatVoltage::Set(0, batteryVoltage);
+
+      if (status != Protocols::InteractionModel::Status::Success) {
+        LOG_ERR("Updating battery voltage failed %x", to_underlying(status));
+      } else {
+        LOG_INF("Battery voltage updated: %u mV", AppTask::Instance().GetCurrentBatteryVoltage());
+      }
+
+      // 배터리 잔량 업데이트
+      DataModel::Nullable<uint8_t> batteryPercent(AppTask::Instance().GetCurrentBatteryPercentage());
+      status = Clusters::PowerSource::Attributes::BatPercentRemaining::Set(0, batteryPercent);
+
+      if (status != Protocols::InteractionModel::Status::Success) {
+        LOG_ERR("Updating battery percentage failed %x", to_underlying(status));
+      } else {
+        LOG_INF("Battery percentage updated: %u (%u%%)", 
+                AppTask::Instance().GetCurrentBatteryPercentage(),
+                AppTask::Instance().GetCurrentBatteryPercentage() / 2 );
+      }      
+
     },
     reinterpret_cast<intptr_t>(timer->user_data));
 }
