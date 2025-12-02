@@ -146,7 +146,7 @@ CHIP_ERROR AppTask::StartApp()
 
 	mTemperatureSensorMaxValue = val.Value();
 	/************************************************************************************************************ */
-#if 0
+#if 1
 	// 습도 센서 초기화 추가
   DataModel::Nullable<uint16_t> humidityVal;
   status = Clusters::RelativeHumidityMeasurement::Attributes::MinMeasuredValue::Get(kHumiditySensorEndpointId, humidityVal);

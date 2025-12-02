@@ -23,7 +23,6 @@
 
 #include <app/util/basic-types.h>
 
-
 void MatterIdentifyClusterInitCallback(chip::EndpointId endpointId);
 
 void MatterIdentifyClusterShutdownCallback(chip::EndpointId endpointId);
@@ -42,7 +41,8 @@ void MatterBasicInformationClusterShutdownCallback(chip::EndpointId endpointId);
 
 void MatterGeneralCommissioningClusterInitCallback(chip::EndpointId endpointId);
 
-void MatterGeneralCommissioningClusterShutdownCallback(chip::EndpointId endpointId);
+void MatterGeneralCommissioningClusterShutdownCallback(
+    chip::EndpointId endpointId);
 
 void MatterDiagnosticLogsClusterInitCallback(chip::EndpointId endpointId);
 
@@ -50,20 +50,27 @@ void MatterDiagnosticLogsClusterShutdownCallback(chip::EndpointId endpointId);
 
 void MatterGeneralDiagnosticsClusterInitCallback(chip::EndpointId endpointId);
 
-void MatterGeneralDiagnosticsClusterShutdownCallback(chip::EndpointId endpointId);
+void MatterGeneralDiagnosticsClusterShutdownCallback(
+    chip::EndpointId endpointId);
 
 void MatterSoftwareDiagnosticsClusterInitCallback(chip::EndpointId endpointId);
 
-void MatterSoftwareDiagnosticsClusterShutdownCallback(chip::EndpointId endpointId);
+void MatterSoftwareDiagnosticsClusterShutdownCallback(
+    chip::EndpointId endpointId);
 
-void MatterAdministratorCommissioningClusterInitCallback(chip::EndpointId endpointId);
+void MatterAdministratorCommissioningClusterInitCallback(
+    chip::EndpointId endpointId);
 
-void MatterAdministratorCommissioningClusterShutdownCallback(chip::EndpointId endpointId);
+void MatterAdministratorCommissioningClusterShutdownCallback(
+    chip::EndpointId endpointId);
 
-void MatterOperationalCredentialsClusterInitCallback(chip::EndpointId endpointId);
+void MatterOperationalCredentialsClusterInitCallback(
+    chip::EndpointId endpointId);
 
-void MatterOperationalCredentialsClusterShutdownCallback(chip::EndpointId endpointId);
+void MatterOperationalCredentialsClusterShutdownCallback(
+    chip::EndpointId endpointId);
 
 void MatterGroupKeyManagementClusterInitCallback(chip::EndpointId endpointId);
 
-void MatterGroupKeyManagementClusterShutdownCallback(chip::EndpointId endpointId);
+void MatterGroupKeyManagementClusterShutdownCallback(
+    chip::EndpointId endpointId);
