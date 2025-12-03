@@ -85,14 +85,26 @@ public:
 
 private:
 	CHIP_ERROR Init();
-	k_timer mTimer;
 
-	static constexpr uint32_t kTemperatureMeasurementIntervalMs = 10000; /* 60 seconds */
-	static constexpr uint16_t kTemperatureMeasurementStep = 100; /* 1 degree Celsius */
+  /* 1분 주기 센서 읽기 work */
+  k_work_delayable mSensorReadWork;
 
+  static constexpr uint32_t kSensorReadIntervalMs = 60000; /* 60 seconds */
+  static constexpr uint16_t kTemperatureMeasurementStep = 100; /* 1 degree Celsius */
   static constexpr uint16_t kHumidityMeasurementStep = 100; /* 1 percent */
 
-	static void UpdateTemperatureTimeoutCallback(k_timer *timer);
+  /* 센서 읽기 및 업데이트 work handler */
+  static void SensorReadWorkHandler(k_work *work);
+  /* SHT31 센서 초기화 */
+  void InitializeSHT31Sensor();
+  /* 센서 데이터 읽기 (실물 또는 가상) */
+  bool ReadSensorData(double &temperature, double &humidity);
+  /* 온도 업데이트 (변화 감지 후 Matter 속성 업데이트) */
+  void UpdateTemperatureAttribute(int16_t new_temperature);
+  /* 습도 업데이트 (변화 감지 후 Matter 속성 업데이트) */
+  void UpdateHumidityAttribute(uint16_t new_humidity);
+    /* 배터리 상태 업데이트 (가상 데이터만) */
+  void UpdateBatteryAttributes();
 
 	static void ButtonEventHandler(Nrf::ButtonState state, Nrf::ButtonMask hasChanged);
 
@@ -112,4 +124,14 @@ private:
   
   uint32_t mCurrentBatteryVoltage = mBatteryVoltageMax;
   uint8_t mCurrentBatteryPercentage = 200; /* 100% = 200 in 0.5% units */	
+
+  /* 이전 센서 값 저장 (변화 감지용) */
+  int16_t mPreviousTemperature = 0;
+  uint16_t mPreviousHumidity = 0;
+  
+  /* 센서 사용 가능 여부 */
+  bool mSensorAvailable = false;
+  
+  /* 실제 센서 데이터 사용 여부 (true: 실제 센서, false: 가상 데이터) */
+  bool mUseRealSensor = true;
 };
