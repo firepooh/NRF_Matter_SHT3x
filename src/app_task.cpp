@@ -16,6 +16,10 @@
 
 #include <zephyr/logging/log.h>
 
+extern "C" {
+#include "sht31_sensor.h"
+}
+
 LOG_MODULE_DECLARE(app, CONFIG_CHIP_APP_LOG_LEVEL);
 
 using namespace ::chip;
@@ -44,6 +48,24 @@ void AppTask::ButtonEventHandler(Nrf::ButtonState state, Nrf::ButtonMask hasChan
 		Server::GetInstance().GetICDManager().OnNetworkActivity();
 	}
 #endif
+}
+
+void AppTask::UpdateSensorTimeoutCallback(k_timer *timer)
+{
+  if (!timer || !timer->user_data) {
+    return;
+  }
+
+  #if 0
+  double temp,hum;
+
+  if( sht31_is_ready()) {
+    sht31_read_all(&temp, &hum);
+    LOG_INF("Temperature: %.2f C, Humidity: %.2f %%RH", temp, hum);
+  } else {
+    LOG_WRN("SHT31 sensor not ready");
+  }
+  #endif  
 }
 
 void AppTask::UpdateTemperatureTimeoutCallback(k_timer *timer)
@@ -145,6 +167,18 @@ CHIP_ERROR AppTask::Init()
 	ReturnErrorOnFailure(sIdentifyCluster.Init());
 	ReturnErrorOnFailure(sIdentifyClusterHumidity.Init());
 
+  /* SHT31 센서 초기화 추가 */
+  int ret = sht31_sensor_init();
+  if (ret != 0) {
+    LOG_ERR("Failed to initialize SHT31 sensor: %d", ret);
+    return CHIP_ERROR_INTERNAL;
+  }
+  
+  double temp,hum;
+  sht31_read_all(&temp, &hum);
+
+  LOG_INF("SHT31 sensor initialized successfully - Temp: %.2f C, Humidity: %.2f %%RH", temp, hum);
+
 	return Nrf::Matter::StartServer();
 }
 
@@ -201,12 +235,18 @@ CHIP_ERROR AppTask::StartApp()
 	/************************************************************************************************************ */
 
 
-
+  /* Sensor timer */
+  k_timer_init(&mSensorTimer, AppTask::UpdateSensorTimeoutCallback, nullptr);
+  k_timer_user_data_set(&mSensorTimer, this);
+  k_timer_start(&mSensorTimer, K_MSEC(10000), K_MSEC(10000));
 
 
 	while (true) {
 		Nrf::DispatchNextTask();
 	}
+
+
+
 
 	return CHIP_NO_ERROR;
 }

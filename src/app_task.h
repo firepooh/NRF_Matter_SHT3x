@@ -77,13 +77,15 @@ public:
 private:
 	CHIP_ERROR Init();
 	k_timer mTimer;
+  k_timer mSensorTimer;
 
-	static constexpr uint32_t kTemperatureMeasurementIntervalMs = 60000; /* 60 seconds */
+	static constexpr uint32_t kTemperatureMeasurementIntervalMs = 10000; /* 60 seconds */
 	static constexpr uint16_t kTemperatureMeasurementStep = 100; /* 1 degree Celsius */
 
   static constexpr uint16_t kHumidityMeasurementStep = 100; /* 1 percent */
 
 	static void UpdateTemperatureTimeoutCallback(k_timer *timer);
+  static void UpdateSensorTimeoutCallback(k_timer *timer);
 
 	static void ButtonEventHandler(Nrf::ButtonState state, Nrf::ButtonMask hasChanged);
 

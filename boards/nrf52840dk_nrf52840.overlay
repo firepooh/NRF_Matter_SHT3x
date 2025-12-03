@@ -18,7 +18,16 @@
 	status = "disabled";
 };
 &i2c0 {
-	status = "disabled";
+  /* SDA P0.26, SCL P0.27,  */
+  status = "okay";
+  compatible = "nordic,nrf-twim";
+  clock-frequency = <I2C_BITRATE_FAST>; /* 400kHz */
+  
+  sht3xd: sht3xd@44 {
+    compatible = "sensirion,sht3xd";
+    reg = <0x44>; /* I2C 주소: 0x44 (ADDR 핀이 LOW일 때) */
+    status = "okay";
+  };
 };
 &pwm0 {
 	status = "disabled";
