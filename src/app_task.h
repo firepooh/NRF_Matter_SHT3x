@@ -22,6 +22,7 @@ public:
 
 	CHIP_ERROR StartApp();
 
+
 	/* Defined by cluster temperature measured value = 100 x temperature in degC with resolution of
 	 * 0.01 degC. */
 	void UpdateTemperatureMeasurement()
@@ -35,6 +36,8 @@ public:
 	}
 
 	int16_t GetCurrentTemperature() const { return mCurrentTemperature; }
+  /************************************************************************************************ */
+
 
   /* Defined by cluster humidity measured value = 100 x humidity in % with resolution of 0.01 %. */
   void UpdateHumidityMeasurement()
@@ -48,6 +51,8 @@ public:
   }
 
   uint16_t GetCurrentHumidity() const { return mCurrentHumidity; }
+  /************************************************************************************************ */
+
 
   /* Battery voltage in mV (3000-4200mV for Li-ion) */
   void UpdateBatteryVoltage()
@@ -61,6 +66,8 @@ public:
   }
 
   uint32_t GetCurrentBatteryVoltage() const { return mCurrentBatteryVoltage; }
+  /************************************************************************************************ */
+
 
   /* Battery percentage 0-200 (0.5% units, 200 = 100%) */
   void UpdateBatteryPercentage()
@@ -73,11 +80,12 @@ public:
   }
 
   uint8_t GetCurrentBatteryPercentage() const { return mCurrentBatteryPercentage; }
+  /************************************************************************************************ */
+
 
 private:
 	CHIP_ERROR Init();
 	k_timer mTimer;
-  k_timer mSensorTimer;
 
 	static constexpr uint32_t kTemperatureMeasurementIntervalMs = 10000; /* 60 seconds */
 	static constexpr uint16_t kTemperatureMeasurementStep = 100; /* 1 degree Celsius */
@@ -85,7 +93,6 @@ private:
   static constexpr uint16_t kHumidityMeasurementStep = 100; /* 1 percent */
 
 	static void UpdateTemperatureTimeoutCallback(k_timer *timer);
-  static void UpdateSensorTimeoutCallback(k_timer *timer);
 
 	static void ButtonEventHandler(Nrf::ButtonState state, Nrf::ButtonMask hasChanged);
 

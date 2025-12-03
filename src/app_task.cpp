@@ -50,23 +50,6 @@ void AppTask::ButtonEventHandler(Nrf::ButtonState state, Nrf::ButtonMask hasChan
 #endif
 }
 
-void AppTask::UpdateSensorTimeoutCallback(k_timer *timer)
-{
-  if (!timer || !timer->user_data) {
-    return;
-  }
-
-  #if 0
-  double temp,hum;
-
-  if( sht31_is_ready()) {
-    sht31_read_all(&temp, &hum);
-    LOG_INF("Temperature: %.2f C, Humidity: %.2f %%RH", temp, hum);
-  } else {
-    LOG_WRN("SHT31 sensor not ready");
-  }
-  #endif  
-}
 
 void AppTask::UpdateTemperatureTimeoutCallback(k_timer *timer)
 {
@@ -126,29 +109,6 @@ void AppTask::UpdateTemperatureTimeoutCallback(k_timer *timer)
     reinterpret_cast<intptr_t>(timer->user_data));
 }
 
-#if 0
-void AppTask::UpdateHumidityTimeoutCallback(k_timer *timer)
-{
-  if (!timer || !timer->user_data) {
-    return;
-  }
-
-  DeviceLayer::PlatformMgr().ScheduleWork(
-    [](intptr_t p) {
-      AppTask::Instance().UpdateHumidityMeasurement();
-
-      Protocols::InteractionModel::Status status =
-        Clusters::RelativeHumidityMeasurement::Attributes::MeasuredValue::Set(
-          kHumiditySensorEndpointId, AppTask::Instance().GetCurrentHumidity());
-
-      if (status != Protocols::InteractionModel::Status::Success) {
-        LOG_ERR("Updating humidity measurement failed %x", to_underlying(status));
-      }
-    },
-    reinterpret_cast<intptr_t>(timer->user_data));
-}
-#endif
-
 
 CHIP_ERROR AppTask::Init()
 {
@@ -207,7 +167,6 @@ CHIP_ERROR AppTask::StartApp()
 
 	mTemperatureSensorMaxValue = val.Value();
 	/************************************************************************************************************ */
-#if 1
 	// 습도 센서 초기화 추가
   DataModel::Nullable<uint16_t> humidityVal;
   status = Clusters::RelativeHumidityMeasurement::Attributes::MinMeasuredValue::Get(kHumiditySensorEndpointId, humidityVal);
@@ -227,26 +186,15 @@ CHIP_ERROR AppTask::StartApp()
   }
 
   mHumiditySensorMaxValue = humidityVal.Value();
-#endif	
   /************************************************************************************************************ */
 	k_timer_init(&mTimer, AppTask::UpdateTemperatureTimeoutCallback, nullptr);
 	k_timer_user_data_set(&mTimer, this);
 	k_timer_start(&mTimer, K_MSEC(kTemperatureMeasurementIntervalMs), K_MSEC(kTemperatureMeasurementIntervalMs));
 	/************************************************************************************************************ */
 
-
-  /* Sensor timer */
-  k_timer_init(&mSensorTimer, AppTask::UpdateSensorTimeoutCallback, nullptr);
-  k_timer_user_data_set(&mSensorTimer, this);
-  k_timer_start(&mSensorTimer, K_MSEC(10000), K_MSEC(10000));
-
-
 	while (true) {
 		Nrf::DispatchNextTask();
 	}
-
-
-
 
 	return CHIP_NO_ERROR;
 }
