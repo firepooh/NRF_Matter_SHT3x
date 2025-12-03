@@ -5,6 +5,7 @@
  */
 
 #include "app_task.h"
+#include "sht31_sensor.h"
 
 #include "app/matter_init.h"
 #include "app/task_executor.h"
@@ -14,6 +15,7 @@
 
 #include <app-common/zap-generated/attributes/Accessors.h>
 
+#include <cstdlib>
 #include <zephyr/logging/log.h>
 
 LOG_MODULE_DECLARE(app, CONFIG_CHIP_APP_LOG_LEVEL);
@@ -54,25 +56,31 @@ void AppTask::UpdateTemperatureTimeoutCallback(k_timer *timer)
 
   DeviceLayer::PlatformMgr().ScheduleWork(
     [](intptr_t p) {
-      // 온도 업데이트
+      // 온도 업데이트 (SHT31 센서에서 읽기)
       AppTask::Instance().UpdateTemperatureMeasurement();
 
+      int16_t currentTemp = AppTask::Instance().GetCurrentTemperature();
       Protocols::InteractionModel::Status status =
         Clusters::TemperatureMeasurement::Attributes::MeasuredValue::Set(
-          kTemperatureSensorEndpointId, AppTask::Instance().GetCurrentTemperature());
+          kTemperatureSensorEndpointId, currentTemp);
 
       if (status != Protocols::InteractionModel::Status::Success) {
         LOG_ERR("Updating temperature measurement failed %x", to_underlying(status));
+      } else {
+        LOG_INF("Temperature updated: %d.%02d C", currentTemp / 100, abs(currentTemp % 100));
       }
 
-      // 습도 업데이트
+      // 습도 업데이트 (SHT31 센서에서 읽기)
       AppTask::Instance().UpdateHumidityMeasurement();
 
+      uint16_t currentHumidity = AppTask::Instance().GetCurrentHumidity();
       status = Clusters::RelativeHumidityMeasurement::Attributes::MeasuredValue::Set(
-        kHumiditySensorEndpointId, AppTask::Instance().GetCurrentHumidity());
+        kHumiditySensorEndpointId, currentHumidity);
 
       if (status != Protocols::InteractionModel::Status::Success) {
         LOG_ERR("Updating humidity measurement failed %x", to_underlying(status));
+      } else {
+        LOG_INF("Humidity updated: %u.%02u %%", currentHumidity / 100, currentHumidity % 100);
       }
 
       // 배터리 전압 업데이트
@@ -136,6 +144,12 @@ CHIP_ERROR AppTask::Init()
 	if (!Nrf::GetBoard().Init(ButtonEventHandler)) {
 		LOG_ERR("User interface initialization failed.");
 		return CHIP_ERROR_INCORRECT_STATE;
+	}
+
+	/* Initialize SHT31 sensor */
+	int ret = sht31_sensor_init();
+	if (ret < 0) {
+		LOG_WRN("SHT31 sensor initialization failed: %d. Using simulated values.", ret);
 	}
 
 	/* Register Matter event handler that controls the connectivity status LED based on the captured Matter network
