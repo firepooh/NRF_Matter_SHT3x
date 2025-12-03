@@ -21,7 +21,7 @@
 /* Enable I2C0 for SHT31 sensor */
 &i2c0 {
 	status = "okay";
-	compatible = "nordic,nrf-twi";
+	compatible = "nordic,nrf-twim";
 	clock-frequency = <I2C_BITRATE_STANDARD>;
 
 	sht3xd@44 {

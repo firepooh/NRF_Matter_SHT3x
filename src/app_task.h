@@ -44,12 +44,11 @@ public:
 
 	int16_t GetCurrentTemperature() const { return mCurrentTemperature; }
 
-	/* Update humidity measurement from SHT31 sensor */
+	/* Fallback humidity simulation when sensor is not available */
 	void UpdateHumidityMeasurement()
 	{
-		/* Humidity is already updated in UpdateTemperatureMeasurement() */
-		/* This function is kept for compatibility but does nothing */
-		/* If sensor read failed, fallback to simulation */
+		/* Humidity is updated together with temperature in UpdateTemperatureMeasurement() 
+		 * when sensor is available. This function only provides fallback simulation. */
 		if (!sht31_sensor_is_ready()) {
 			if (mCurrentHumidity < mHumiditySensorMaxValue) {
 				mCurrentHumidity += kHumidityMeasurementStep;

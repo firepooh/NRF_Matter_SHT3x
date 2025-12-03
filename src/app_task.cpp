@@ -15,7 +15,6 @@
 
 #include <app-common/zap-generated/attributes/Accessors.h>
 
-#include <cstdlib>
 #include <zephyr/logging/log.h>
 
 LOG_MODULE_DECLARE(app, CONFIG_CHIP_APP_LOG_LEVEL);
@@ -67,7 +66,10 @@ void AppTask::UpdateTemperatureTimeoutCallback(k_timer *timer)
       if (status != Protocols::InteractionModel::Status::Success) {
         LOG_ERR("Updating temperature measurement failed %x", to_underlying(status));
       } else {
-        LOG_INF("Temperature updated: %d.%02d C", currentTemp / 100, abs(currentTemp % 100));
+        int16_t tempWhole = currentTemp / 100;
+        int16_t tempFrac = currentTemp % 100;
+        if (tempFrac < 0) tempFrac = -tempFrac;
+        LOG_INF("Temperature updated: %d.%02d C", tempWhole, tempFrac);
       }
 
       // 습도 업데이트 (SHT31 센서에서 읽기)

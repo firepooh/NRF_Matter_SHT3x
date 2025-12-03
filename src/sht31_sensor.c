@@ -30,11 +30,6 @@ int sht31_sensor_init(void)
 	return -ENODEV;
 #endif
 
-	if (sht31_dev == NULL) {
-		LOG_ERR("SHT3x device not found");
-		return -ENODEV;
-	}
-
 	if (!device_is_ready(sht31_dev)) {
 		LOG_ERR("SHT3x device is not ready");
 		return -ENODEV;
