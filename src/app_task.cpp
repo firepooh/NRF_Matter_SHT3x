@@ -18,6 +18,7 @@
 
 extern "C" {
 #include "sht31_sensor.h"
+#include "battery_adc.h"
 }
 
 LOG_MODULE_DECLARE(app, CONFIG_CHIP_APP_LOG_LEVEL);
@@ -225,54 +226,109 @@ void AppTask::InitializeSHT31Sensor()
 }
 
 
+void AppTask::InitializeBatteryAdc()
+{
+	LOG_INF("Initializing battery ADC...");
+
+	/* Battery ADC 초기화 */
+	int ret = BatteryAdc::Instance().Init();
+	if (ret == 0) {
+		LOG_INF("Battery ADC initialized successfully");
+		mBatteryAdcAvailable = true;
+		mUseRealBatteryAdc = true;
+
+		/* 초기 배터리 전압 읽기 */
+		int32_t voltage_mv = BatteryAdc::Instance().ReadVoltage();
+		if (voltage_mv > 0) {
+			mCurrentBatteryVoltage = (uint32_t)voltage_mv;
+			mCurrentBatteryPercentage = BatteryAdc::Instance().GetLastPercentage();
+			LOG_INF("Initial battery voltage: %d mV, percentage: %d (0.5%% units)",
+			        mCurrentBatteryVoltage, mCurrentBatteryPercentage);
+		} else {
+			LOG_WRN("Failed to read initial battery voltage: %d", voltage_mv);
+		}
+	} else {
+		LOG_WRN("Battery ADC initialization failed: %d, will use simulated data", ret);
+		mBatteryAdcAvailable = false;
+		mUseRealBatteryAdc = false;
+	}
+}
+
+
 void AppTask::SensorReadWorkHandler(k_work *work)
 {
-  if (!work) {
-    return;
-  }
+	if (!work) {
+		return;
+	}
 
-  /* work에서 AppTask 인스턴스 가져오기 */
-  k_work_delayable *delayable_work = k_work_delayable_from_work(work);
-  AppTask *instance = CONTAINER_OF(delayable_work, AppTask, mSensorReadWork);
+	/* work에서 AppTask 인스턴스 가져오기 */
+	k_work_delayable *delayable_work = k_work_delayable_from_work(work);
+	AppTask *instance = CONTAINER_OF(delayable_work, AppTask, mSensorReadWork);
 
-  double temperature = 0.0;
-  double humidity = 0.0;
+	double temperature = 0.0;
+	double humidity = 0.0;
 
-  /* 센서 데이터 읽기 (실물 또는 가상) */
-  bool sensor_read_success = instance->ReadSensorData(temperature, humidity);
+	/* 센서 데이터 읽기 (실물 또는 가상) */
+	bool sensor_read_success = instance->ReadSensorData(temperature, humidity);
 
-  if( instance->mUseRealSensor && !sensor_read_success ) {
-    LOG_WRN("Sensor read failed, will use previous values");
-    /* 이전 값 사용 */
-    temperature = (double)instance->GetCurrentTemperature() / 100.0;
-    humidity = (double)instance->GetCurrentHumidity() / 100.0;
-  }
-  
-  /* Matter 속성 값으로 변환 (100배) */
-  int16_t new_temperature_value = (int16_t)(temperature * 100.0);
-  uint16_t new_humidity_value = (uint16_t)(humidity * 100.0);
+	if (instance->mUseRealSensor && !sensor_read_success) {
+		LOG_WRN("Sensor read failed, will use previous values");
+		/* 이전 값 사용 */
+		temperature = (double)instance->GetCurrentTemperature() / 100.0;
+		humidity = (double)instance->GetCurrentHumidity() / 100.0;
+	}
 
-  /* 온도 업데이트 (변화 감지) */
-  instance->UpdateTemperatureAttribute(new_temperature_value);
+	/* Matter 속성 값으로 변환 (100배) */
+	int16_t new_temperature_value = (int16_t)(temperature * 100.0);
+	uint16_t new_humidity_value = (uint16_t)(humidity * 100.0);
 
-  /* 습도 업데이트 (변화 감지) */
-  instance->UpdateHumidityAttribute(new_humidity_value);
+	/* 온도 업데이트 (변화 감지) */
+	instance->UpdateTemperatureAttribute(new_temperature_value);
 
-  /* 배터리 정보 업데이트 (가상 데이터 사용 시만) */
-  #if 0
-  if (!instance->mUseRealSensor) {
-    instance->UpdateBatteryAttributes();
-  }
-  #else
-  /* 배터리 전압 및 잔량 시뮬레이션 업데이트 */
-  instance->UpdateBatteryVoltage();
-  instance->UpdateBatteryPercentage();
+	/* 습도 업데이트 (변화 감지) */
+	instance->UpdateHumidityAttribute(new_humidity_value);
 
-  instance->UpdateBatteryAttributes();
-  #endif
+	/* 다음 1분 후 재스케줄 */
+	k_work_schedule(&instance->mSensorReadWork, K_MSEC(kSensorReadIntervalMs));
+}
 
-  /* 다음 1분 후 재스케줄 */
-  k_work_schedule(&instance->mSensorReadWork, K_MSEC(kSensorReadIntervalMs));
+
+void AppTask::BatteryReadWorkHandler(k_work *work)
+{
+	if (!work) {
+		return;
+	}
+
+	/* work에서 AppTask 인스턴스 가져오기 */
+	k_work_delayable *delayable_work = k_work_delayable_from_work(work);
+	AppTask *instance = CONTAINER_OF(delayable_work, AppTask, mBatteryReadWork);
+
+	/* 실제 배터리 ADC 데이터 사용 시도 */
+	if (instance->mUseRealBatteryAdc && instance->mBatteryAdcAvailable) {
+		int32_t voltage_mv = BatteryAdc::Instance().ReadVoltage();
+		if (voltage_mv > 0) {
+			instance->mCurrentBatteryVoltage = (uint32_t)voltage_mv;
+			instance->mCurrentBatteryPercentage = BatteryAdc::Instance().GetLastPercentage();
+			LOG_INF("Battery ADC read: voltage=%d mV, percentage=%d (0.5%% units)",
+			        instance->mCurrentBatteryVoltage,
+			        instance->mCurrentBatteryPercentage);
+		} else {
+			LOG_WRN("Battery ADC read failed: %d, using simulated data", voltage_mv);
+		}
+	} else {
+		/* 가상 데이터 사용 */
+		instance->UpdateBatteryVoltage();
+		instance->UpdateBatteryPercentage();
+		LOG_DBG("Battery simulated: voltage=%d mV, percentage=%d (0.5%% units)",
+		        instance->mCurrentBatteryVoltage,
+		        instance->mCurrentBatteryPercentage);
+	}
+
+	/* 배터리 속성 Matter 업데이트 */
+	instance->UpdateBatteryAttributes();
+
+	/* 다음 10분 후 재스케줄 */
+	k_work_schedule(&instance->mBatteryReadWork, K_MSEC(kBatteryReadIntervalMs));
 }
 
 
@@ -295,6 +351,9 @@ CHIP_ERROR AppTask::Init()
 
 	/* SHT31 센서 초기화 */
 	InitializeSHT31Sensor();
+
+	/* 배터리 ADC 초기화 */
+	InitializeBatteryAdc();
 
 	return Nrf::Matter::StartServer();
 }
@@ -345,13 +404,17 @@ CHIP_ERROR AppTask::StartApp()
   mHumiditySensorMaxValue = humidityVal.Value();
   /************************************************************************************************************ */
 
-  /* 센서 읽기 work 초기화 및 시작 */
-  k_work_init_delayable(&mSensorReadWork, SensorReadWorkHandler);
-  
-  /* 초기 센서 읽기는 5초 후 시작 (Matter 초기화 대기) */
-  k_work_schedule(&mSensorReadWork, K_MSEC(5000));
-  
-  LOG_INF("Sensor reading task started (60 second interval)");
+	/* 센서 읽기 work 초기화 및 시작 */
+	k_work_init_delayable(&mSensorReadWork, SensorReadWorkHandler);
+	/* 초기 센서 읽기는 5초 후 시작 (Matter 초기화 대기) */
+	k_work_schedule(&mSensorReadWork, K_MSEC(5000));
+	LOG_INF("Sensor reading task started (60 second interval)");
+
+	/* 배터리 읽기 work 초기화 및 시작 */
+	k_work_init_delayable(&mBatteryReadWork, BatteryReadWorkHandler);
+	/* 초기 배터리 읽기는 10초 후 시작 (Matter 초기화 대기) */
+	k_work_schedule(&mBatteryReadWork, K_MSEC(10000));
+	LOG_INF("Battery reading task started (600 second interval)");
 
 	while (true) {
 		Nrf::DispatchNextTask();
