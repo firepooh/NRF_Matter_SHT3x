@@ -88,14 +88,14 @@ bool AppTask::ReadSensorData(double &temperature, double &humidity)
   return sensor_read_success;
 }
 
-void AppTask::UpdateTemperatureAttribute(int16_t new_temperature)
+void AppTask::UpdateTemperatureAttribute(bool force_update, int16_t new_temperature)
 {
   /* 온도 변화 감지: 소수점 첫째 자리까지 비교 */
   /* 예: 23.15 -> 231, 23.18 -> 231 (같음), 23.25 -> 232 (다름) */
   int16_t temp_rounded_current = (new_temperature + 5) / 10;  /* 반올림하여 소수점 첫째 자리까지 */
   int16_t temp_rounded_previous = (mPreviousTemperature + 5) / 10;
 
-  if (temp_rounded_current == temp_rounded_previous) {
+  if (!force_update && temp_rounded_current == temp_rounded_previous) {
     LOG_DBG("Temperature unchanged (%.1f C), skipping update", (double)new_temperature / 100.0);
     return;
   }
@@ -121,14 +121,14 @@ void AppTask::UpdateTemperatureAttribute(int16_t new_temperature)
 }
 
 
-void AppTask::UpdateHumidityAttribute(uint16_t new_humidity)
+void AppTask::UpdateHumidityAttribute(bool force_update, uint16_t new_humidity)
 {
   /* 습도 변화 감지: 정수 부분만 비교 */
   /* 예: 65.8% -> 65, 65.2% -> 65 (같음), 66.1% -> 66 (다름) */
   uint16_t humidity_int_current = new_humidity / 100;  /* 정수 부분만 */
   uint16_t humidity_int_previous = mPreviousHumidity / 100;
 
-  if (humidity_int_current == humidity_int_previous) {
+  if (!force_update && humidity_int_current == humidity_int_previous) {
     LOG_DBG("Humidity unchanged (%d %%RH), skipping update", humidity_int_current);
     return;
   }
@@ -282,11 +282,16 @@ void AppTask::SensorReadWorkHandler(k_work *work)
 	int16_t new_temperature_value = (int16_t)(temperature * 100.0);
 	uint16_t new_humidity_value = (uint16_t)(humidity * 100.0);
 
+	bool force_update = (instance->mForceUpdateCount < AppTask::kForceUpdateMaxCount);
+	if (force_update) {
+		instance->mForceUpdateCount++;
+	}
+
 	/* 온도 업데이트 (변화 감지) */
-	instance->UpdateTemperatureAttribute(new_temperature_value);
+	instance->UpdateTemperatureAttribute(force_update, new_temperature_value);
 
 	/* 습도 업데이트 (변화 감지) */
-	instance->UpdateHumidityAttribute(new_humidity_value);
+	instance->UpdateHumidityAttribute(force_update, new_humidity_value);
 
 	/* 다음 1분 후 재스케줄 */
 	k_work_schedule(&instance->mSensorReadWork, K_MSEC(kSensorReadIntervalMs));
@@ -327,8 +332,13 @@ void AppTask::BatteryReadWorkHandler(k_work *work)
 	/* 배터리 속성 Matter 업데이트 */
 	instance->UpdateBatteryAttributes();
 
-	/* 다음 10분 후 재스케줄 */
-	k_work_schedule(&instance->mBatteryReadWork, K_MSEC(kBatteryReadIntervalMs));
+	/* 다음 읽기 스케줄링 */
+	if( instance->mForceUpdateCount < AppTask::kForceUpdateMaxCount) {
+		/* 부팅후 1분 간격으로 읽기 */
+		k_work_schedule(&instance->mBatteryReadWork, K_MSEC(kBatteryReadIntervalShortMs));
+	} else {
+	  k_work_schedule(&instance->mBatteryReadWork, K_MSEC(kBatteryReadIntervalMs));
+	}
 }
 
 
@@ -337,10 +347,12 @@ CHIP_ERROR AppTask::Init()
 	/* Initialize Matter stack */
 	ReturnErrorOnFailure(Nrf::Matter::PrepareServer());
 
+#ifdef CONFIG_DK_LIBRARY	
 	if (!Nrf::GetBoard().Init(ButtonEventHandler)) {
 		LOG_ERR("User interface initialization failed.");
 		return CHIP_ERROR_INCORRECT_STATE;
 	}
+#endif	
 
 	/* Register Matter event handler that controls the connectivity status LED based on the captured Matter network
 	 * state. */
@@ -358,8 +370,34 @@ CHIP_ERROR AppTask::Init()
 	return Nrf::Matter::StartServer();
 }
 
+#include <zephyr/kernel.h>
+#include <nrfx.h>
+#include <hal/nrf_nvmc.h>
+
+void configure_regout0_3v0(void)
+{
+  if ((NRF_UICR->REGOUT0 & UICR_REGOUT0_VOUT_Msk) == 
+      (UICR_REGOUT0_VOUT_DEFAULT << UICR_REGOUT0_VOUT_Pos)) {
+    
+    nrf_nvmc_mode_set(NRF_NVMC, NRF_NVMC_MODE_WRITE);
+    
+    // 3.0V = VOUT 필드를 2 (010)로 설정
+    NRF_UICR->REGOUT0 = (NRF_UICR->REGOUT0 & ~UICR_REGOUT0_VOUT_Msk) |
+                        (4UL << UICR_REGOUT0_VOUT_Pos);  // 2 = 3.0V
+    
+    while (!nrf_nvmc_ready_check(NRF_NVMC));
+    
+    nrf_nvmc_mode_set(NRF_NVMC, NRF_NVMC_MODE_READONLY);
+    
+    NVIC_SystemReset();
+  }
+}
+
 CHIP_ERROR AppTask::StartApp()
 {
+	/* Regout0을 3.0V로 설정 */
+	configure_regout0_3v0();
+
 	ReturnErrorOnFailure(Init());
 
 	/************************************************************************************************************ */

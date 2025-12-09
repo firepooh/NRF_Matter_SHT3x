@@ -88,11 +88,12 @@ private:
 
 	/* 1분 주기 센서 읽기 work */
 	k_work_delayable mSensorReadWork;
-	static constexpr uint32_t kSensorReadIntervalMs = 60000; /* 60 seconds */
+	static constexpr uint32_t kSensorReadIntervalMs = 1000*60; /* 1 minutes */
 
-	/* 10분 주기 배터리 읽기 work */
+	/* 30분 주기 배터리 읽기 work */
 	k_work_delayable mBatteryReadWork;
-	static constexpr uint32_t kBatteryReadIntervalMs = 600000; /* 600 seconds (10 minutes) */
+	static constexpr uint32_t kBatteryReadIntervalShortMs = 1000*60*1; /* 60 seconds (1 minute) */
+	static constexpr uint32_t kBatteryReadIntervalMs = 1000*60*30; /* 1800 seconds (30 minutes) */
 
 	static constexpr uint16_t kTemperatureMeasurementStep = 100; /* 1 degree Celsius */
 	static constexpr uint16_t kHumidityMeasurementStep = 100; /* 1 percent */
@@ -108,9 +109,9 @@ private:
 	/* 센서 데이터 읽기 (실물 또는 가상) */
 	bool ReadSensorData(double &temperature, double &humidity);
 	/* 온도 업데이트 (변화 감지 후 Matter 속성 업데이트) */
-	void UpdateTemperatureAttribute(int16_t new_temperature);
+	void UpdateTemperatureAttribute(bool force_update, int16_t new_temperature);
 	/* 습도 업데이트 (변화 감지 후 Matter 속성 업데이트) */
-	void UpdateHumidityAttribute(uint16_t new_humidity);
+	void UpdateHumidityAttribute(bool force_update, uint16_t new_humidity);
 	/* 배터리 상태 업데이트 */
 	void UpdateBatteryAttributes();
 
@@ -136,6 +137,10 @@ private:
 	/* 이전 센서 값 저장 (변화 감지용) */
 	int16_t mPreviousTemperature = 0;
 	uint16_t mPreviousHumidity = 0;
+
+  /* 부팅후 강제 전송 count */
+  uint16_t mForceUpdateCount = 0;
+	static constexpr uint16_t kForceUpdateMaxCount = 10; /* 처음 10회는 강제 전송 */
 
 	/* 센서 사용 가능 여부 */
 	bool mSensorAvailable = false;
