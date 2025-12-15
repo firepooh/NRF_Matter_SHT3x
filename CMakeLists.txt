@@ -32,7 +32,7 @@ target_include_directories(app PRIVATE
 target_sources(app PRIVATE
   src/app_task.cpp
   src/main.cpp
-  src/sht31_sensor.c
+  src/sht41_sensor.c
   src/battery_adc.cpp
 )
 

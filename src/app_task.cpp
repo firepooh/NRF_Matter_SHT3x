@@ -17,7 +17,7 @@
 #include <zephyr/logging/log.h>
 
 extern "C" {
-#include "sht31_sensor.h"
+#include "sht41_sensor.h"
 #include "battery_adc.h"
 }
 
@@ -57,16 +57,16 @@ bool AppTask::ReadSensorData(double &temperature, double &humidity)
 
   /* 실물 센서 읽기 시도 */
   if (mUseRealSensor && mSensorAvailable) {
-    if (sht31_is_ready()) {
-      int ret = sht31_read_all(&temperature, &humidity);
+    if (sht41_is_ready()) {
+      int ret = sht41_read_all(&temperature, &humidity);
       if (ret == 0) {
         sensor_read_success = true;
-        LOG_INF("SHT31 sensor read - Temp: %.2f C, Humidity: %.2f %%RH", temperature, humidity);
+        LOG_INF("SHT41 sensor read - Temp: %.2f C, Humidity: %.2f %%RH", temperature, humidity);
       } else {
-        LOG_WRN("Failed to read SHT31 sensor: %d, using simulated data", ret);
+        LOG_WRN("Failed to read SHT41 sensor: %d, using simulated data", ret);
       }
     } else {
-      LOG_WRN("SHT31 sensor not ready, using simulated data");
+      LOG_WRN("SHT41 sensor not ready, using simulated data");
     }
   }
 
@@ -183,21 +183,20 @@ void AppTask::UpdateBatteryAttributes()
 }
 
 
-void AppTask::InitializeSHT31Sensor()
+void AppTask::InitializeSHT41Sensor()
 {
 	constexpr int MAX_RETRIES = 3;
 	constexpr int RETRY_DELAY_MS = 50;
 
-	/* SHT31 센서 초기화 시도 (최대 3번 retry) */
+	/* SHT41 센서 초기화 시도 (최대 3번 retry) */
 	for (int attempt = 1; attempt <= MAX_RETRIES; attempt++) {
-		LOG_INF("SHT31 sensor initialization attempt %d/%d", attempt, MAX_RETRIES);
+		LOG_INF("SHT41 sensor initialization attempt %d/%d", attempt, MAX_RETRIES);
 		
-		int ret = sht31_sensor_init();
-		if (ret == 0 && sht31_is_ready()) {
+		if ( sht41_sensor_init() == 0) {
 			double temp, hum;
-			ret = sht31_read_all(&temp, &hum);
+			int ret = sht41_read_all(&temp, &hum);
 			if (ret == 0) {
-				LOG_INF("SHT31 sensor initialized successfully - Temp: %.2f C, Humidity: %.2f %%RH", temp, hum);
+				LOG_INF("SHT41 sensor initialized successfully - Temp: %.2f C, Humidity: %.2f %%RH", temp, hum);
 				mSensorAvailable = true;
 
 				/* 초기 온습도 값 설정 */
@@ -207,10 +206,10 @@ void AppTask::InitializeSHT31Sensor()
 				mPreviousHumidity = mCurrentHumidity;
 				return;
 			} else {
-				LOG_WRN("SHT31 sensor read failed: %d (attempt %d/%d)", ret, attempt, MAX_RETRIES);
+				LOG_WRN("SHT41 sensor read failed: %d (attempt %d/%d)", ret, attempt, MAX_RETRIES);
 			}
 		} else {
-			LOG_WRN("SHT31 sensor not found (attempt %d/%d)", attempt, MAX_RETRIES);
+			LOG_WRN("SHT41 sensor not found (attempt %d/%d)", attempt, MAX_RETRIES);
 		}
 
 		/* 마지막 시도가 아니면 대기 */
@@ -220,7 +219,7 @@ void AppTask::InitializeSHT31Sensor()
 	}
 
 	/* 모든 시도 실패 - 가상 데이터 사용 */
-	LOG_WRN("SHT31 sensor initialization failed after %d attempts, will use simulated data", MAX_RETRIES);
+	LOG_WRN("SHT41 sensor initialization failed after %d attempts, will use simulated data", MAX_RETRIES);
 	mSensorAvailable = false;
 
 }
@@ -341,32 +340,6 @@ void AppTask::BatteryReadWorkHandler(k_work *work)
 	}
 }
 
-#include <zephyr/drivers/sensor/sht4x.h>
-void sensor_init( void )
-{
-	const struct device *const sht = DEVICE_DT_GET_ANY(sensirion_sht4x);
-	
-	if (!device_is_ready(sht)) {
-    LOG_ERR("########## SHT41 sensor device not ready");
-    return;
-  }
-
-		struct sensor_value temp, humidity;
-
-		if (sensor_sample_fetch(sht)) {
-			#ifdef DEBUG
-				LOG_ERR("Failed to fetch sample from SHT4X device\n");
-			#endif
-			return;
-		}
-		sensor_channel_get(sht, SENSOR_CHAN_AMBIENT_TEMP, &temp);
-		sensor_channel_get(sht, SENSOR_CHAN_HUMIDITY, &humidity);
-
-  LOG_INF("########## SHT41 sensor device found %d.%06d C, %d.%06d %%RH",
-          temp.val1, temp.val2,
-          humidity.val1, humidity.val2);
-}
-
 
 CHIP_ERROR AppTask::Init()
 {
@@ -387,18 +360,13 @@ CHIP_ERROR AppTask::Init()
 	ReturnErrorOnFailure(sIdentifyCluster.Init());
 	ReturnErrorOnFailure(sIdentifyClusterHumidity.Init());
 
-#if 1
-  for( int i = 0 ; i < 3; i++ ) {
-    sensor_init();
-    k_msleep(100);
-  }
-#else
-	/* SHT31 센서 초기화 */
-	InitializeSHT31Sensor();
+	/* SHT41 센서 초기화 */
+	InitializeSHT41Sensor();
 
+	#if 0
 	/* 배터리 ADC 초기화 */
 	InitializeBatteryAdc();
-#endif  
+	#endif
 
 	return Nrf::Matter::StartServer();
 }
@@ -475,13 +443,14 @@ CHIP_ERROR AppTask::StartApp()
   mHumiditySensorMaxValue = humidityVal.Value();
   /************************************************************************************************************ */
 
-  #if 0
+
 	/* 센서 읽기 work 초기화 및 시작 */
 	k_work_init_delayable(&mSensorReadWork, SensorReadWorkHandler);
 	/* 초기 센서 읽기는 5초 후 시작 (Matter 초기화 대기) */
 	k_work_schedule(&mSensorReadWork, K_MSEC(5000));
 	LOG_INF("Sensor reading task started (60 second interval)");
 
+  #if 0
 	/* 배터리 읽기 work 초기화 및 시작 */
 	k_work_init_delayable(&mBatteryReadWork, BatteryReadWorkHandler);
 	/* 초기 배터리 읽기는 10초 후 시작 (Matter 초기화 대기) */

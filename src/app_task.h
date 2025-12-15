@@ -103,7 +103,7 @@ private:
 	/* 배터리 읽기 및 업데이트 work handler */
 	static void BatteryReadWorkHandler(k_work *work);
 	/* SHT31 센서 초기화 */
-	void InitializeSHT31Sensor();
+	void InitializeSHT41Sensor();
 	/* 배터리 ADC 초기화 */
 	void InitializeBatteryAdc();
 	/* 센서 데이터 읽기 (실물 또는 가상) */

@@ -13,43 +13,42 @@ extern "C" {
 #endif
 
 /**
- * @brief SHT31 센서 초기화
+ * @brief SHT41 센서 초기화
  * 
  * @return 0 성공, 음수 에러 코드
  */
-int sht31_sensor_init(void);
+int sht41_sensor_init(void);
 
 /**
- * @brief SHT31 센서에서 온도 읽기
+ * @brief SHT41 센서에서 온도 읽기
  * 
  * @param temperature 온도 값 저장 포인터 (섭씨, °C)
  * @return 0 성공, 음수 에러 코드
  */
-int sht31_read_temperature(double *temperature);
+int sht41_read_temperature(double *temperature);
 
 /**
- * @brief SHT31 센서에서 습도 읽기
+ * @brief SHT41 센서에서 습도 읽기
  * 
  * @param humidity 습도 값 저장 포인터 (상대습도, %RH)
  * @return 0 성공, 음수 에러 코드
  */
-int sht31_read_humidity(double *humidity);
+int sht41_read_humidity(double *humidity);
 
 /**
- * @brief SHT31 센서에서 온도와 습도를 동시에 읽기
+ * @brief SHT41 센서에서 온도와 습도를 동시에 읽기
  * 
  * @param temperature 온도 값 저장 포인터 (섭씨, °C)
  * @param humidity 습도 값 저장 포인터 (상대습도, %RH)
  * @return 0 성공, 음수 에러 코드
  */
-int sht31_read_all(double *temperature, double *humidity);
-
+int sht41_read_all(double *temperature, double *humidity);
 /**
  * @brief SHT31 센서가 준비되었는지 확인
  * 
  * @return true 준비됨, false 준비 안됨
  */
-bool sht31_is_ready(void);
+bool sht41_is_ready(void);
 
 #ifdef __cplusplus
 }

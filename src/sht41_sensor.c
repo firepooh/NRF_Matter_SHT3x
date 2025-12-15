@@ -4,60 +4,68 @@
  * SPDX-License-Identifier: LicenseRef-Nordic-5-Clause
  */
 
-#include "sht31_sensor.h"
+#include "sht41_sensor.h"
 
 #include <zephyr/device.h>
 #include <zephyr/drivers/sensor.h>
+#include <zephyr/drivers/sensor/sht4x.h>
 #include <zephyr/logging/log.h>
 
-LOG_MODULE_REGISTER(sht31_sensor, LOG_LEVEL_INF);
+LOG_MODULE_REGISTER(sht41_sensor, LOG_LEVEL_INF);
 
-/* SHT3XD 디바이스 노드 */
-static const struct device *sht3xd_dev = DEVICE_DT_GET_ANY(sensirion_sht3xd);
+/* SHT41 디바이스 노드 */
+static const struct device *sht41_dev = DEVICE_DT_GET_ANY(sensirion_sht4x);
+bool sht41_ready = false;
 
-int sht31_sensor_init(void)
+int sht41_sensor_init(void)
 {
-  if (!sht3xd_dev) {
-    LOG_ERR("Failed to get SHT3XD device");
+  if (!sht41_dev) {
+    LOG_ERR("Failed to get SHT41 device");
     return -ENODEV;
   }
 
-  if (!device_is_ready(sht3xd_dev)) {
-    LOG_ERR("SHT3XD device is not ready");
+  if (!device_is_ready(sht41_dev)) {
+    LOG_ERR("SHT41 device is not ready");
     return -ENODEV;
   }
 
-  LOG_INF("SHT3XD sensor initialized successfully");
+  LOG_INF("SHT41 sensor initialized successfully");
+
+  sht41_ready = true;
+
   return 0;
 }
 
-bool sht31_is_ready(void)
+
+bool sht41_is_ready(void)
 {
-  if (!sht3xd_dev) {
+  if (!sht41_dev || !sht41_ready) {
     return false;
   }
-  return device_is_ready(sht3xd_dev);
+
+  return true;
 }
 
-int sht31_read_temperature(double *temperature)
+
+int sht41_read_temperature(double *temperature)
 {
   struct sensor_value temp_value;
   int ret;
 
-  if (!sht31_is_ready()) {
-    LOG_ERR("SHT3XD device is not ready");
+  if (!sht41_is_ready()) {
+    LOG_ERR("SHT41 device is not ready");
     return -ENODEV;
   }
 
   /* 센서 데이터 샘플링 */
-  ret = sensor_sample_fetch(sht3xd_dev);
+  ret = sensor_sample_fetch(sht41_dev);
   if (ret) {
     LOG_ERR("Failed to fetch sensor data: %d", ret);
     return ret;
   }
 
   /* 온도 값 읽기 */
-  ret = sensor_channel_get(sht3xd_dev, SENSOR_CHAN_AMBIENT_TEMP, &temp_value);
+  ret = sensor_channel_get(sht41_dev, SENSOR_CHAN_AMBIENT_TEMP, &temp_value);
   if (ret) {
     LOG_ERR("Failed to get temperature: %d", ret);
     return ret;
@@ -70,25 +78,25 @@ int sht31_read_temperature(double *temperature)
   return 0;
 }
 
-int sht31_read_humidity(double *humidity)
+int sht41_read_humidity(double *humidity)
 {
   struct sensor_value hum_value;
   int ret;
 
-  if (!sht31_is_ready()) {
-    LOG_ERR("SHT3XD device is not ready");
+  if (!sht41_is_ready()) {
+    LOG_ERR("SHT41 device is not ready");
     return -ENODEV;
   }
 
   /* 센서 데이터 샘플링 */
-  ret = sensor_sample_fetch(sht3xd_dev);
+  ret = sensor_sample_fetch(sht41_dev);
   if (ret) {
     LOG_ERR("Failed to fetch sensor data: %d", ret);
     return ret;
   }
 
   /* 습도 값 읽기 */
-  ret = sensor_channel_get(sht3xd_dev, SENSOR_CHAN_HUMIDITY, &hum_value);
+  ret = sensor_channel_get(sht41_dev, SENSOR_CHAN_HUMIDITY, &hum_value);
   if (ret) {
     LOG_ERR("Failed to get humidity: %d", ret);
     return ret;
@@ -101,25 +109,25 @@ int sht31_read_humidity(double *humidity)
   return 0;
 }
 
-int sht31_read_all(double *temperature, double *humidity)
+int sht41_read_all(double *temperature, double *humidity)
 {
   struct sensor_value temp_value, hum_value;
   int ret;
 
-  if (!sht31_is_ready()) {
-    LOG_ERR("SHT3XD device is not ready");
+  if (!sht41_is_ready()) {
+    LOG_ERR("SHT41 device is not ready");
     return -ENODEV;
   }
 
   /* 센서 데이터 샘플링 (한 번만 호출) */
-  ret = sensor_sample_fetch(sht3xd_dev);
+  ret = sensor_sample_fetch(sht41_dev);
   if (ret) {
     LOG_ERR("Failed to fetch sensor data: %d", ret);
     return ret;
   }
 
   /* 온도 값 읽기 */
-  ret = sensor_channel_get(sht3xd_dev, SENSOR_CHAN_AMBIENT_TEMP, &temp_value);
+  ret = sensor_channel_get(sht41_dev, SENSOR_CHAN_AMBIENT_TEMP, &temp_value);
   if (ret) {
     LOG_ERR("Failed to get temperature: %d", ret);
     return ret;
@@ -127,7 +135,7 @@ int sht31_read_all(double *temperature, double *humidity)
   *temperature = sensor_value_to_double(&temp_value);
 
   /* 습도 값 읽기 */
-  ret = sensor_channel_get(sht3xd_dev, SENSOR_CHAN_HUMIDITY, &hum_value);
+  ret = sensor_channel_get(sht41_dev, SENSOR_CHAN_HUMIDITY, &hum_value);
   if (ret) {
     LOG_ERR("Failed to get humidity: %d", ret);
     return ret;
