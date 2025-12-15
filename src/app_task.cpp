@@ -341,6 +341,32 @@ void AppTask::BatteryReadWorkHandler(k_work *work)
 	}
 }
 
+#include <zephyr/drivers/sensor/sht4x.h>
+void sensor_init( void )
+{
+	const struct device *const sht = DEVICE_DT_GET_ANY(sensirion_sht4x);
+	
+	if (!device_is_ready(sht)) {
+    LOG_ERR("########## SHT41 sensor device not ready");
+    return;
+  }
+
+		struct sensor_value temp, humidity;
+
+		if (sensor_sample_fetch(sht)) {
+			#ifdef DEBUG
+				LOG_ERR("Failed to fetch sample from SHT4X device\n");
+			#endif
+			return;
+		}
+		sensor_channel_get(sht, SENSOR_CHAN_AMBIENT_TEMP, &temp);
+		sensor_channel_get(sht, SENSOR_CHAN_HUMIDITY, &humidity);
+
+  LOG_INF("########## SHT41 sensor device found %d.%06d C, %d.%06d %%RH",
+          temp.val1, temp.val2,
+          humidity.val1, humidity.val2);
+}
+
 
 CHIP_ERROR AppTask::Init()
 {
@@ -361,11 +387,18 @@ CHIP_ERROR AppTask::Init()
 	ReturnErrorOnFailure(sIdentifyCluster.Init());
 	ReturnErrorOnFailure(sIdentifyClusterHumidity.Init());
 
+#if 1
+  for( int i = 0 ; i < 3; i++ ) {
+    sensor_init();
+    k_msleep(100);
+  }
+#else
 	/* SHT31 센서 초기화 */
 	InitializeSHT31Sensor();
 
 	/* 배터리 ADC 초기화 */
 	InitializeBatteryAdc();
+#endif  
 
 	return Nrf::Matter::StartServer();
 }
@@ -442,6 +475,7 @@ CHIP_ERROR AppTask::StartApp()
   mHumiditySensorMaxValue = humidityVal.Value();
   /************************************************************************************************************ */
 
+  #if 0
 	/* 센서 읽기 work 초기화 및 시작 */
 	k_work_init_delayable(&mSensorReadWork, SensorReadWorkHandler);
 	/* 초기 센서 읽기는 5초 후 시작 (Matter 초기화 대기) */
@@ -453,6 +487,7 @@ CHIP_ERROR AppTask::StartApp()
 	/* 초기 배터리 읽기는 10초 후 시작 (Matter 초기화 대기) */
 	k_work_schedule(&mBatteryReadWork, K_MSEC(10000));
 	LOG_INF("Battery reading task started (600 second interval)");
+  #endif
 
 	while (true) {
 		Nrf::DispatchNextTask();
