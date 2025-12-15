@@ -363,10 +363,8 @@ CHIP_ERROR AppTask::Init()
 	/* SHT41 센서 초기화 */
 	InitializeSHT41Sensor();
 
-	#if 0
 	/* 배터리 ADC 초기화 */
 	InitializeBatteryAdc();
-	#endif
 
 	return Nrf::Matter::StartServer();
 }
@@ -450,13 +448,11 @@ CHIP_ERROR AppTask::StartApp()
 	k_work_schedule(&mSensorReadWork, K_MSEC(5000));
 	LOG_INF("Sensor reading task started (60 second interval)");
 
-  #if 0
 	/* 배터리 읽기 work 초기화 및 시작 */
 	k_work_init_delayable(&mBatteryReadWork, BatteryReadWorkHandler);
 	/* 초기 배터리 읽기는 10초 후 시작 (Matter 초기화 대기) */
 	k_work_schedule(&mBatteryReadWork, K_MSEC(10000));
 	LOG_INF("Battery reading task started (600 second interval)");
-  #endif
 
 	while (true) {
 		Nrf::DispatchNextTask();
