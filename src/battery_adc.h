@@ -58,9 +58,16 @@ public:
    */
   uint8_t GetLastPercentage() const { return mLastPercentage; }
 
-  // 배터리 전압 범위
+  #if 0
+  // lithium 1셀 배터리 전압 범위
   static constexpr uint32_t BATTERY_VOLTAGE_MAX = 4200; /* 4.2V */
   static constexpr uint32_t BATTERY_VOLTAGE_MIN = 3000; /* 3.0V */
+  #else
+  // 3.3V Coin Cell Battery
+  static constexpr uint32_t BATTERY_VOLTAGE_MAX = 3300; /* 3.3V */
+  static constexpr uint32_t BATTERY_VOLTAGE_MIN = 2400; /* 2.4V */
+  #endif
+
 
 private:
   BatteryAdc() = default;
@@ -71,7 +78,9 @@ private:
   BatteryAdc &operator=(const BatteryAdc &) = delete;
 
   // ADC 설정 상수
-  static constexpr uint8_t VOLTAGE_DIVIDER_RATIO = 2;  // 1:2 분압
+  // "1" : 1:1 분압사용
+  // "2" : 1:2 분압사용
+  static constexpr uint8_t VOLTAGE_DIVIDER_RATIO = 1;
   
   // ADC 디바이스 및 설정
   struct adc_dt_spec mAdcChannel;
