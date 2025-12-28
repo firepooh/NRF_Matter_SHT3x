@@ -26,8 +26,10 @@ config CHIP_ICD_REPORT_ON_ACTIVE_MODE
 	default y
 
 # Reduce Thread TX output power to 0 dBm for SED device
+# 8 dBm : 16.89mA Peak Current
+# 4 dBm : 13.17mA Peak Current
 config OPENTHREAD_DEFAULT_TX_POWER
-	default 8
+	default 4
 
 source "$(ZEPHYR_CONNECTEDHOMEIP_MODULE_DIR)/config/nrfconnect/chip-module/Kconfig.features"
 source "$(ZEPHYR_CONNECTEDHOMEIP_MODULE_DIR)/config/nrfconnect/chip-module/Kconfig.defaults"
