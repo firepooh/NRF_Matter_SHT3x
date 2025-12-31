@@ -23,6 +23,6 @@ config MATTER_OTA
 
 #### Enable generating factory data
 config MATTER_FACTORY_DATA_GENERATE
-	default y
+	default n
 
 source "share/sysbuild/Kconfig"
