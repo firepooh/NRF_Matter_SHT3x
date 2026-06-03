@@ -32,7 +32,8 @@ if errorlevel 1 (
 
 :: 2. 펌웨어 플래시
 echo [2/4] Flashing firmware...
-west flash --runner jlink
+::west flash --runner jlink
+west flash --runner jlink -d build_1
 if errorlevel 1 (
   echo 에러: Firmware flash 실패
   exit /b 1

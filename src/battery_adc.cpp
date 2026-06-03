@@ -62,13 +62,22 @@ int BatteryAdc::Init()
 
 int32_t BatteryAdc::ReadVoltage()
 {
+	int err;
+
 	if (!mInitialized) {
 		LOG_ERR("Battery ADC not initialized");
 		return -ENODEV;
 	}
 
+  /* ★ 매번 채널 재설정 (PM resume 후 채널 설정이 날아가는 문제 해결) */
+  err = adc_channel_setup_dt(&mAdcChannel);
+  if (err < 0) {
+    LOG_WRN("ADC channel re-setup: %d", err);
+		return err;
+  }
+
 	/* Perform ADC read */
-	int err = adc_read(mAdcChannel.dev, &mSequence);
+	err = adc_read(mAdcChannel.dev, &mSequence);
 	if (err < 0) {
 		LOG_ERR("ADC read failed: %d", err);
 		return err;

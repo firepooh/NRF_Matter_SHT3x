@@ -92,8 +92,14 @@ private:
 
 	/* 30분 주기 배터리 읽기 work */
 	k_work_delayable mBatteryReadWork;
+#if 1
 	static constexpr uint32_t kBatteryReadIntervalShortMs = 1000*60*1; /* 60 seconds (1 minute) */
 	static constexpr uint32_t kBatteryReadIntervalMs = 1000*60*30; /* 1800 seconds (30 minutes) */
+#else
+// test purpose
+	static constexpr uint32_t kBatteryReadIntervalShortMs = 1000*10; /* 15 seconds */
+	static constexpr uint32_t kBatteryReadIntervalMs = 1000*10; /* 60 seconds (1 minute) */
+#endif
 
 	static constexpr uint16_t kTemperatureMeasurementStep = 100; /* 1 degree Celsius */
 	static constexpr uint16_t kHumidityMeasurementStep = 100; /* 1 percent */

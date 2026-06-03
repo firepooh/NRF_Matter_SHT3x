@@ -395,7 +395,7 @@ void configure_regout0_3v0(void)
 CHIP_ERROR AppTask::StartApp()
 {
 	/* Regout0을 3.0V로 설정 */
-	configure_regout0_3v0();
+	//configure_regout0_3v0();
 
 	ReturnErrorOnFailure(Init());
 
